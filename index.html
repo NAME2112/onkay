@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Ultimate Racing Game Working</title>
+<style>
+<style>
+body{
+  margin:0;
+  background:#111;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+  overflow:hidden;
+  font-family:Arial;
+}
+
+#game{
+  width:100vw;
+  height:100vh;
+  max-width:400px;
+  max-height:600px;
+  background:#222;
+  position:relative;
+  overflow:hidden;
+  border:5px solid #0ff;
+  box-shadow:0 0 20px #0ff inset;
+}
+
+/* Player, enemy, lines, controls সব আগের মতই */
+.player{width:12.5%;height:16.6%;position:absolute;bottom:3%;left:43.75%;border-radius:12px;background:linear-gradient(to bottom,#ff0000,#800000);box-shadow:0 0 10px #ff0000,inset 0 0 5px #fff;z-index:3;}
+.player::before{content:"";position:absolute;top:10%;left:10%;width:80%;height:25%;background:rgba(255,255,255,0.6);border-radius:4px;z-index:4;}
+.player::after{content:"";position:absolute;bottom:0;left:20%;width:60%;height:10%;background:yellow;border-radius:0 0 6px 6px;z-index:4;}
+
+.enemy{width:12.5%;height:16.6%;position:absolute;top:-25%;border-radius:12px;z-index:2;box-shadow:0 0 10px #fff,inset 0 0 5px #fff;}
+.enemy::before{content:"";position:absolute;top:10%;left:10%;width:80%;height:25%;background:rgba(255,255,255,0.5);border-radius:4px;z-index:3;}
+.enemy::after{content:"";position:absolute;bottom:0;left:20%;width:60%;height:10%;background:yellow;border-radius:0 0 6px 6px;z-index:3;}
+
+.roadLine{width:2.5%;height:13.3%;position:absolute;left:48.75%;background:linear-gradient(to bottom,#fff,#0ff);box-shadow:0 0 5px #0ff;z-index:1;}
+
+#controls{position:absolute;bottom:2%;width:100%;display:flex;justify-content:space-between;z-index:20;}
+.controlBtn{width:20%;height:8%;font-size:5vw;background:#444;color:white;border:none;border-radius:10px;}
+
+#score{position:absolute;top:2%;left:2%;color:white;font-size:5vw;z-index:5;}
+
+.fire{position:absolute;width:15%;height:10%;background:radial-gradient(circle,yellow,orange,red);border-radius:50%;z-index:10;animation:explode 0.6s ease-out forwards;}
+
+#startScreen{position:absolute;width:100%;height:100%;background:#000c;color:white;display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:50;font-size:8vw;text-align:center;}
+#startBtn{margin-top:5%;padding:2% 5%;font-size:6vw;cursor:pointer;border:none;border-radius:10px;background:cyan;color:black;}
+</style>
+
+<div id="game">
+  <div id="score">Score: 0</div>
+  <div class="player" id="player"></div>
+  <div id="controls">
+    <button class="controlBtn" id="leftBtn">⬅</button>
+    <button class="controlBtn" id="rightBtn">➡</button>
+  </div>
+  <div id="startScreen">
+    <div>🚦 Get Ready!</div>
+    <div id="countdown">3</div>
+    <button id="startBtn">Start</button>
+  </div>
+</div>
+
+<script>
+let player = document.getElementById("player");
+let scoreText = document.getElementById("score");
+let startScreen = document.getElementById("startScreen");
+let countdown = document.getElementById("countdown");
+let startBtn = document.getElementById("startBtn");
+
+let playerX = 175;
+let speed = 5;
+let score = 0;
+let gameOver = false;
+let gameStarted = false;
+let keys = {};
+
+document.addEventListener("keydown", e=>keys[e.key]=true);
+document.addEventListener("keyup", e=>keys[e.key]=false);
+
+// Mobile buttons
+document.getElementById("leftBtn").ontouchstart=()=>{playerX-=30;player.style.left=playerX+"px";}
+document.getElementById("rightBtn").ontouchstart=()=>{playerX+=30;player.style.left=playerX+"px";}
+
+// Crash sound
+let crashSound = new Audio("https://www.soundjay.com/mechanical/sounds/car-crash-01.mp3");
+
+// Road lines
+for(let i=0;i<5;i++){
+  let line=document.createElement("div");
+  line.classList.add("roadLine");
+  line.style.top=(i*150)+"px";
+  line.y=i*150;
+  document.getElementById("game").appendChild(line);
+}
+
+// Enemy cars
+let colors=["blue","green","purple","cyan","orange"];
+let enemies=[];
+for(let i=0;i<5;i++){
+  let enemy=document.createElement("div");
+  enemy.classList.add("enemy");
+  enemy.style.background=colors[i];
+  enemy.y=(i+1)*-250;
+  enemy.style.left=Math.random()*350+"px";
+  document.getElementById("game").appendChild(enemy);
+  enemies.push(enemy);
+}
+
+// Fire animation
+function createFire(x,y){
+  let fire=document.createElement("div");
+  fire.classList.add("fire");
+  fire.style.left=x+"px";
+  fire.style.top=y+"px";
+  document.getElementById("game").appendChild(fire);
+  setTimeout(()=>fire.remove(),600);
+}
+
+// Countdown
+startBtn.onclick=function(){
+  let count=3;
+  countdown.innerText=count;
+  let interval=setInterval(()=>{
+    count--;
+    if(count>0){countdown.innerText=count;}
+    else{
+      countdown.innerText="GO!";
+      clearInterval(interval);
+      setTimeout(()=>{startScreen.style.display="none"; gameStarted=true;},500);
+    }
+  },1000);
+}
+
+function gameLoop(){
+  if(!gameStarted || gameOver){requestAnimationFrame(gameLoop);return;}
+
+  // Move road lines
+  document.querySelectorAll(".roadLine").forEach(line=>{
+    line.y+=speed;
+    if(line.y>600) line.y=-100;
+    line.style.top=line.y+"px";
+  });
+
+  // Move player
+  if(keys["ArrowLeft"] && playerX>0) playerX-=7;
+  if(keys["ArrowRight"] && playerX<350) playerX+=7;
+  player.style.left=playerX+"px";
+
+  // Move enemies
+  enemies.forEach(enemy=>{
+    enemy.y+=speed;
+    if(enemy.y>600){enemy.y=-300;enemy.style.left=Math.random()*350+"px";score++;speed+=0.1;}
+    enemy.style.top=enemy.y+"px";
+
+    // Collision
+    let p=player.getBoundingClientRect();
+    let e=enemy.getBoundingClientRect();
+    if(!(p.bottom<e.top||p.top>e.bottom||p.right<e.left||p.left>e.right)){
+      gameOver=true;
+      createFire(playerX,player.offsetTop);
+      crashSound.play();
+      setTimeout(()=>{alert("💥এই ছেলে তোর খেলা শেষ !\nScore: "+score);location.reload();},600);
+    }
+  });
+
+  scoreText.innerText="Score: "+score;
+  requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+</script>
+</body>
+</html>
